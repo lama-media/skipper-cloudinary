@@ -14,11 +14,13 @@ module.exports = function CloudinaryReceiver(cloudinary, options) {
   receiver._write = function onFile(file, encoding, done) {
 
     const headers = options.headers || {};
+    const localID = _.uniqueId();
+    const __newFile = file;
 
     const stream = cloudinary.uploader.upload_stream(function (result) {
 
       if (result.error) {
-        return receiver.emit('error', new Error(result.error.message));
+        return receiver.emit('error', result.error.message);
       }
 
       file.extra     = result;
@@ -29,6 +31,31 @@ module.exports = function CloudinaryReceiver(cloudinary, options) {
 
     stream.on('error', function (error) {
       done(error);
+    });
+
+    stream.on('data', function (chunk) {
+      var currentFileProgress = _.find(receiver._files, {
+        id: localID
+      });
+
+      if (currentFileProgress) {
+        currentFileProgress.written += chunk.length;
+        currentFileProgress.total = __newFile.byteCount;
+        currentFileProgress.percent = Math.round(currentFileProgress.written/__newFile.byteCount*100);
+        currentFileProgress.stream = __newFile;
+      } else {
+        currentFileProgress = {
+          id: localID,
+          fd: __newFile.fd,
+          name: __newFile.filename,
+          written: 0,
+          total: __newFile.byteCount,
+          percent: 0,
+          stream: __newFile
+        };
+        receiver._files.push(currentFileProgress);
+      }
+      receiver.emit('progress', currentFileProgress);
     });
 
     stream.on('readable', function () {

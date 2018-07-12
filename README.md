@@ -1,4 +1,4 @@
-# Skipper Cloudinary
+# Skipper Cloudinary - forked by Lama Media
 
 This adapter is made to work with skipper.
 
@@ -16,13 +16,17 @@ req.file('awesomefile')
       secret   : 'cloudinarySecretKey',
       cloudName: 'cloudinaryCloudName',
       uploadOptions: {
-        folder: 'awesomefolder'
+        folder: 'awesomefolder',
+        resource_type: 'video'
       }
     }, (error, uploadedFiles) => {
       uploadedFiles.forEach(uploadedFile => {
         console.log(uploadedFile); // contains regular meta
         console.log(uploadedFile.extra); // contains cloudinary response
       });
+    })
+    .on('progress', function( args ){
+        console.log('percent loaded:', args.percent)
     });
 ```
 
