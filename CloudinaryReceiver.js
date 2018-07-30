@@ -17,17 +17,17 @@ module.exports = function CloudinaryReceiver(cloudinary, options) {
     const localID = _.uniqueId();
     const __newFile = file;
 
-    const stream = cloudinary.uploader.upload_stream(function (result) {
+    const stream = cloudinary.v2.uploader.upload_stream(options.uploadOptions, function (error, result) {
 
-      if (result.error) {
-        return receiver.emit('error', result.error.message);
+      if (error) {
+        return receiver.emit('error', error.message);
       }
 
       file.extra     = result;
       file.byteCount = result.bytes;
       file.size      = result.bytes;
       done();
-    }, options.uploadOptions);
+    });
 
     stream.on('error', function (error) {
       done(error);

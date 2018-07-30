@@ -14,6 +14,6 @@
   },
   "homepage": "https://github.com/scrunshes/skipper-cloudinary#readme",
   "dependencies": {
-    "cloudinary": "^1.8.0"
+    "cloudinary": "^1.11.0"
   }
 }
