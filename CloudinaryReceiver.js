@@ -16,8 +16,12 @@ module.exports = function CloudinaryReceiver(cloudinary, options) {
     const headers = options.headers || {};
     const localID = _.uniqueId();
     const __newFile = file;
+    var sent = 0;
 
-    const stream = cloudinary.uploader.upload_stream(function (result) {
+    options.uploadOptions.stream = true;
+    options.uploadOptions.chunk_size = 5242880;
+
+    const stream = cloudinary.uploader.upload_large_stream(null, function (result) {
 
       if (result.error) {
         return receiver.emit('error', result.error.message);
@@ -29,17 +33,18 @@ module.exports = function CloudinaryReceiver(cloudinary, options) {
       done();
     }, options.uploadOptions);
 
-    stream.on('error', function (error) {
-      done(error);
-    });
+    stream.on('ready', function(buffer, is_last, done) {
+      var content_range = "bytes " + chunk_start + "-" + (sent - 1) + "/" + (is_last ? sent : -1);
+      var chunk_start = sent;
+      sent += buffer.length;
+      // console.log( "bytes " + chunk_start + "-" + (sent - 1) + "/" + (is_last ? sent : -1) )
 
-    stream.on('data', function (chunk) {
       var currentFileProgress = _.find(receiver._files, {
         id: localID
       });
 
       if (currentFileProgress) {
-        currentFileProgress.written += chunk.length;
+        currentFileProgress.written += buffer.length;
         currentFileProgress.total = __newFile.byteCount;
         currentFileProgress.percent = Math.round(currentFileProgress.written/__newFile.byteCount*100);
         currentFileProgress.stream = __newFile;
@@ -56,14 +61,13 @@ module.exports = function CloudinaryReceiver(cloudinary, options) {
         receiver._files.push(currentFileProgress);
       }
       receiver.emit('progress', currentFileProgress);
+
+    })
+
+    stream.on('error', function (error) {
+      done(error);
     });
 
-    stream.on('readable', function () {
-      let record;
-      while (record = stream.read()) {
-        options.rowHandler(record, file.fd, file);
-      }
-    });
 
     file.pipe(stream);
   };
